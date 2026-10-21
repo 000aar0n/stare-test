@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="The Stare Test — stare at the star for 20 seconds, then look at a white wall. The faces follow you. A Chromatism afterimage experiment." />
+    <link rel="icon" href="data:," />
+    <title>The Stare Test</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #ffffff;
+        --ink: #0b0b0c;
+        --ink-soft: #45454c;
+        --line: #d9d9de;
+        --panel: #f2f2f4;
+        --stage: #050505;
+        --red: #d92b33;
+        --blue: #2f5fe0;
+        --btn-bg: #0b0b0c;
+        --btn-ink: #ffffff;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0a0a0b;
+          --ink: #f4f2ec;
+          --ink-soft: #a9a7a0;
+          --line: #26262b;
+          --panel: #141416;
+          --btn-bg: #f4f2ec;
+          --btn-ink: #0b0b0c;
+        }
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Archivo", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .mono { font-family: "Space Mono", ui-monospace, monospace; }
+      a { color: inherit; }
+
+      /* ---------- top strip ---------- */
+      .topbar {
+        display: flex; justify-content: space-between; align-items: center;
+        gap: 12px; padding: 14px 20px;
+        border-bottom: 1px solid var(--line);
+        font-family: "Space Mono", monospace; font-size: 12px; letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      .topbar .brand { font-weight: 700; }
+      .topbar nav { display: flex; gap: 18px; }
+      .topbar a { text-decoration: none; border-bottom: 1px solid transparent; }
+      .topbar a:hover { border-bottom-color: currentColor; }
+
+      main { max-width: 1020px; margin: 0 auto; padding: 0 20px 72px; }
+
+      /* ---------- hero ---------- */
+      .hero { padding: 44px 0 26px; }
+      .kicker {
+        font-family: "Space Mono", monospace; font-size: 12px; letter-spacing: .18em;
+        text-transform: uppercase; color: var(--ink-soft); margin: 0 0 14px;
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      }
+      .kicker .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); display: inline-block; }
+      h1 {
+        font-family: "Archivo Black", "Archivo", sans-serif;
+        font-size: clamp(44px, 9.5vw, 104px);
+        line-height: .94; letter-spacing: -0.01em;
+        margin: 0 0 18px; text-transform: uppercase;
+      }
+      h1 .thin { display: block; font-family: "Archivo", sans-serif; font-weight: 500; }
+      .lede { font-size: clamp(16px, 2.4vw, 20px); line-height: 1.45; max-width: 620px; margin: 0; color: var(--ink); }
+      .lede b { font-weight: 700; }
+
+      .steps {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+        background: var(--line); border: 1px solid var(--line);
+        margin: 30px 0 22px;
+      }
+      .step { background: var(--bg); padding: 16px 16px 14px; }
+      .step .n { font-family: "Space Mono", monospace; font-size: 12px; color: var(--red); font-weight: 700; }
+      .step p { margin: 6px 0 0; font-size: 14.5px; line-height: 1.45; }
+      @media (max-width: 640px) { .steps { grid-template-columns: 1fr; } }
+
+      /* ---------- stage ---------- */
+      .stage-wrap { margin-top: 8px; }
+      .stage {
+        position: relative; background: var(--stage);
+        border: 1px solid var(--line);
+        aspect-ratio: 1200 / 668; width: 100%;
+        overflow: hidden; user-select: none; -webkit-user-select: none;
+        touch-action: manipulation;
+      }
+      .stage img.art {
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        object-fit: cover; display: block;
+        transition: opacity .18s ease, filter .3s ease;
+      }
+      .stage.idle img.art { opacity: .55; }
+      .stage.running img.art { opacity: 1; }
+      .stage.reveal { background: #ffffff; border-color: #e4e4e4; }
+      .stage.reveal img.art { opacity: 0; transition: opacity .12s ease; }
+
+      .fixdot {
+        position: absolute; left: 50%; top: 50.5%;
+        width: 14px; height: 14px; margin: -7px 0 0 -7px;
+        border-radius: 50%;
+        border: 2px solid rgba(255,255,255,.95);
+        background: rgba(0,0,0,.25);
+        box-shadow: 0 0 0 5px rgba(255,255,255,.14), 0 0 22px rgba(255,255,255,.35);
+        opacity: 0; pointer-events: none; z-index: 4;
+      }
+      .stage.running .fixdot { opacity: 1; }
+      .fixdot::after {
+        content: ""; position: absolute; inset: 4px; border-radius: 50%; background: #fff;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .stage.running .fixdot { animation: pulse 2.4s ease-in-out infinite; }
+        @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.22); } }
+      }
+      .stage.reveal .fixdot {
+        opacity: 1; border-color: #c9c9c9; background: transparent; box-shadow: none;
+        animation: none;
+      }
+      .stage.reveal .fixdot::after { background: #d8d8d8; }
+
+      .hud {
+        position: absolute; inset: 0; z-index: 5; pointer-events: none;
+        display: flex; flex-direction: column; justify-content: space-between;
+      }
+      .hud-top {
+        display: flex; justify-content: space-between; align-items: flex-start; padding: 14px 16px;
+      }
+      .hud .tag {
+        font-family: "Space Mono", monospace; font-size: 11px; letter-spacing: .14em;
+        text-transform: uppercase; color: rgba(255,255,255,.85);
+        background: rgba(0,0,0,.45); padding: 5px 8px;
+      }
+      .hud .count {
+        font-family: "Space Mono", monospace; font-weight: 700;
+        font-size: clamp(30px, 6vw, 52px); line-height: 1; color: #fff;
+        text-shadow: 0 2px 18px rgba(0,0,0,.6); min-width: 2ch; text-align: right;
+      }
+      .stage.reveal .hud .tag { color: #8a8a8a; background: transparent; }
+      .stage.reveal .hud .count { color: #111; text-shadow: none; }
+      .progressbar { height: 5px; background: rgba(255,255,255,.18); }
+      .progressbar i { display: block; height: 100%; width: 0%; background: var(--red); }
+      .stage.reveal .progressbar { background: #eee; }
+      .stage.reveal .progressbar i { background: #111; }
+
+      .overlay {
+        position: absolute; inset: 0; z-index: 6;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 14px; text-align: center; padding: 20px;
+      }
+      .overlay.hidden { display: none; }
+      .overlay .big {
+        font-family: "Archivo Black", sans-serif; text-transform: uppercase;
+        font-size: clamp(22px, 4.6vw, 40px); line-height: 1.05; color: #fff; margin: 0;
+        text-shadow: 0 2px 24px rgba(0,0,0,.75);
+      }
+      .overlay .small {
+        font-family: "Space Mono", monospace; font-size: 12.5px; letter-spacing: .06em;
+        color: rgba(255,255,255,.88); margin: 0; text-shadow: 0 1px 10px rgba(0,0,0,.8);
+      }
+      .overlay.on-white .big { color: #0b0b0c; text-shadow: none; }
+      .overlay.on-white .small { color: #6d6d6d; text-shadow: none; }
+
+      button { font: inherit; cursor: pointer; }
+      .btn {
+        display: inline-block; border: 0; text-decoration: none;
+        font-family: "Space Mono", monospace; font-weight: 700;
+        font-size: 14px; letter-spacing: .1em; text-transform: uppercase;
+        padding: 15px 26px; background: var(--btn-bg); color: var(--btn-ink);
+        transition: transform .12s ease, opacity .12s ease;
+      }
+      .btn:hover { opacity: .88; }
+      .btn:active { transform: scale(.97); }
+      .btn.red { background: var(--red); color: #fff; }
+      .btn.ghost {
+        background: transparent; color: var(--ink);
+        box-shadow: inset 0 0 0 1.5px var(--ink);
+      }
+      .btn:focus-visible, a:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+
+      .stage-controls {
+        display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+        justify-content: space-between; margin-top: 14px;
+      }
+      .durations { display: flex; gap: 8px; align-items: center; }
+      .durations .lbl { font-family: "Space Mono", monospace; font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); margin-right: 2px; }
+      .chip {
+        font-family: "Space Mono", monospace; font-size: 13px; font-weight: 700;
+        padding: 9px 14px; background: var(--panel); color: var(--ink);
+        border: 1px solid var(--line);
+      }
+      .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+      .hint { font-family: "Space Mono", monospace; font-size: 11.5px; color: var(--ink-soft); letter-spacing: .04em; }
+
+      /* ---------- result ---------- */
+      .result {
+        display: none; margin-top: 26px; border: 1px solid var(--line);
+        padding: 26px 24px; background: var(--panel);
+      }
+      .result.show { display: block; }
+      @media (prefers-reduced-motion: no-preference) {
+        .result.show { animation: rise .45s ease both; }
+        @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+      }
+      .result h2 {
+        font-family: "Archivo Black", sans-serif; text-transform: uppercase;
+        font-size: clamp(24px, 4.6vw, 38px); line-height: 1.02; margin: 0 0 10px;
+      }
+      .result p { margin: 0 0 18px; font-size: 16px; line-height: 1.55; max-width: 560px; }
+      .result .cta-row { display: flex; flex-wrap: wrap; gap: 10px; }
+      .result .fineprint { margin: 16px 0 0; font-size: 13px; color: var(--ink-soft); font-family: "Space Mono", monospace; }
+
+      /* ---------- science + product ---------- */
+      .split {
+        display: grid; grid-template-columns: 1.05fr .95fr; gap: 28px;
+        margin-top: 64px; align-items: start;
+      }
+      @media (max-width: 760px) { .split { grid-template-columns: 1fr; } }
+      .split h3 {
+        font-family: "Archivo Black", sans-serif; text-transform: uppercase;
+        font-size: clamp(22px, 3.6vw, 30px); margin: 0 0 12px; line-height: 1.05;
+      }
+      .split p { font-size: 15.5px; line-height: 1.6; margin: 0 0 12px; color: var(--ink); }
+      .split p.dim { color: var(--ink-soft); }
+      .product {
+        border: 1px solid var(--line); background: var(--bg);
+      }
+      .product img { width: 100%; display: block; aspect-ratio: 1/1; object-fit: cover; background: #111; }
+      .product .meta { padding: 18px; }
+      .product .meta .name { font-family: "Archivo Black", sans-serif; text-transform: uppercase; font-size: 20px; margin: 0 0 4px; }
+      .product .meta .sub { font-family: "Space Mono", monospace; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); margin: 0 0 16px; }
+
+      /* ---------- other experiments ---------- */
+      .others { margin-top: 64px; }
+      .others h3 {
+        font-family: "Space Mono", monospace; font-size: 12px; letter-spacing: .18em;
+        text-transform: uppercase; color: var(--ink-soft); font-weight: 400; margin: 0 0 14px;
+      }
+      .others .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      @media (max-width: 640px) { .others .grid { grid-template-columns: 1fr; } }
+      .exp { position: relative; display: block; border: 1px solid var(--line); overflow: hidden; text-decoration: none; }
+      .exp img { width: 100%; height: 230px; object-fit: cover; display: block; transition: transform .35s ease; }
+      @media (prefers-reduced-motion: no-preference) { .exp:hover img { transform: scale(1.04); } }
+      .exp span {
+        position: absolute; left: 12px; bottom: 12px;
+        font-family: "Space Mono", monospace; font-size: 12px; font-weight: 700;
+        letter-spacing: .12em; text-transform: uppercase;
+        background: rgba(0,0,0,.72); color: #fff; padding: 7px 10px;
+      }
+
+      footer {
+        border-top: 1px solid var(--line); margin-top: 70px; padding: 22px 20px 30px;
+        display: flex; flex-wrap: wrap; gap: 10px 22px; justify-content: space-between;
+        font-family: "Space Mono", monospace; font-size: 12px; letter-spacing: .06em;
+        color: var(--ink-soft); text-transform: uppercase;
+      }
+      footer a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); }
+      .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <span class="brand">Chromatism — NYC</span>
+      <nav>
+        <a href="https://shopchromatism.myshopify.com" target="_blank" rel="noopener">Shop</a>
+        <a href="https://www.instagram.com/shopchromatism" target="_blank" rel="noopener">@shopchromatism</a>
+      </nav>
+    </div>
+
+    <main>
+      <section class="hero">
+        <p class="kicker"><span class="dot"></span> The Stare Test · Experiment 01 — Afterimage</p>
+        <h1>Stare at it.<span class="thin">Then look away.</span></h1>
+        <p class="lede">Twenty seconds with your eyes locked on the star. Then look at a white wall, a ceiling, the blank screen we leave you — <b>the two faces come with you.</b> That's not a trick. That's your eyes, and it's the whole idea behind this collection.</p>
+
+        <div class="steps">
+          <div class="step"><span class="n">01</span><p>Turn your brightness up and hold the phone a normal distance away.</p></div>
+          <div class="step"><span class="n">02</span><p>Hit start. Lock onto the star in the middle. Don't let your eyes wander.</p></div>
+          <div class="step"><span class="n">03</span><p>When the screen goes white — or look up at a wall — blink a few times. There they are.</p></div>
+        </div>
+      </section>
+
+      <section class="stage-wrap" aria-label="The stare test">
+        <div class="stage idle" id="stage">
+          <img class="art" id="artImg" src="img-5af56409.jpg" alt="Chromatism AFTERIMAGE artwork: two mirrored profiles dissolving into red and blue static, with a bright star at the center" />
+          <div class="fixdot" aria-hidden="true"></div>
+
+          <div class="hud" aria-hidden="true">
+            <div class="hud-top">
+              <span class="tag" id="hudTag">Ready</span>
+              <span class="count" id="hudCount"></span>
+            </div>
+            <div class="progressbar"><i id="progressBar"></i></div>
+          </div>
+
+          <div class="overlay" id="startOverlay">
+            <p class="big">Eyes on the star</p>
+            <button class="btn red" id="startBtn" type="button">Start the test</button>
+            <p class="small">don't move your eyes. blinking is fine.</p>
+          </div>
+
+          <div class="overlay on-white hidden" id="revealOverlay">
+            <p class="big">Now look at a wall</p>
+            <p class="small">or stay right here — blink slowly</p>
+          </div>
+        </div>
+
+        <div class="stage-controls">
+          <div class="durations" role="group" aria-label="Test length">
+            <span class="lbl">Length</span>
+            <button class="chip" type="button" data-dur="15" aria-pressed="false">15s</button>
+            <button class="chip" type="button" data-dur="20" aria-pressed="true">20s</button>
+            <button class="chip" type="button" data-dur="30" aria-pressed="false">30s</button>
+          </div>
+          <span class="hint" id="stageHint">longer stare = stronger ghost</span>
+        </div>
+        <p class="sr" role="status" id="liveStatus"></p>
+      </section>
+
+      <section class="result" id="result" aria-label="Test result">
+        <h2>See them?</h2>
+        <p>Two faces, floating on nothing. Your retina got tired of the reds and blues and served you the opposite — a negative burned into your vision for a few seconds. We liked that feeling enough to build a whole collection on it. This exact artwork is printed on the back of the AFTERIMAGE tee.</p>
+        <div class="cta-row">
+          <a class="btn red" href="https://shopchromatism.myshopify.com" target="_blank" rel="noopener">Shop Afterimage</a>
+          <button class="btn ghost" id="againBtn" type="button">Run it again</button>
+          <a class="btn ghost" href="https://www.instagram.com/shopchromatism" target="_blank" rel="noopener">Follow the experiment</a>
+        </div>
+        <p class="fineprint">10% off everything with code FIRSTEXPERIMENT. All sales final.</p>
+      </section>
+
+      <section class="split">
+        <div>
+          <h3>Why it works</h3>
+          <p>Stare at anything bright long enough and the color receptors in your eyes start to fatigue — they stop firing at full strength. Look at a blank surface and your brain gets an unbalanced signal, so it paints in the complementary colors. The image flips. The faces you saw were blue and red; the ones following you now lean warm and green. Same picture, opposite charge.</p>
+          <p>Bridget Riley was doing this to gallery walls in the 1960s. Julio Le Parc too. We're doing it on a tee in New York, because a print you can wear should do something to the people looking at it.</p>
+          <p class="dim">Didn't see it? Get closer to the screen, raise the brightness, and give it the full 30 seconds. It works on almost everyone — the ones it fails on usually moved their eyes.</p>
+        </div>
+        <div class="product">
+          <img src="img-3d8b937e.jpg" alt="Back of the black Chromatism AFTERIMAGE tee, printed with the twin-faces artwork from the test" loading="lazy" />
+          <div class="meta">
+            <p class="name">The Afterimage Tee</p>
+            <p class="sub">Experiment 01 · The artwork from this test, on your back</p>
+            <a class="btn" href="https://shopchromatism.myshopify.com" target="_blank" rel="noopener">Get the tee</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="others">
+        <h3>The other experiments</h3>
+        <div class="grid">
+          <a class="exp" href="https://shopchromatism.myshopify.com" target="_blank" rel="noopener">
+            <img src="img-6d92c491.jpg" alt="Chromatism BLOOM collection artwork — distorted botanical denim artwork" loading="lazy" />
+            <span>02 · Bloom — shop</span>
+          </a>
+          <a class="exp" href="https://shopchromatism.myshopify.com" target="_blank" rel="noopener">
+            <img src="img-442da077.jpg" alt="Chromatism CORRODE collection artwork — corroded textures and footwear" loading="lazy" />
+            <span>03 · Corrode — shop</span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Chromatism — Experiments in Color</span>
+      <span>40.7128° N · 74.0060° W · New York</span>
+      <span><a href="https://www.instagram.com/shopchromatism" target="_blank" rel="noopener">Instagram</a> · <a href="https://shopchromatism.myshopify.com" target="_blank" rel="noopener">Shop</a></span>
+    </footer>
+
+    <script>
+      (function () {
+        var stage = document.getElementById('stage');
+        var art = document.getElementById('artImg');
+        var startOverlay = document.getElementById('startOverlay');
+        var revealOverlay = document.getElementById('revealOverlay');
+        var startBtn = document.getElementById('startBtn');
+        var againBtn = document.getElementById('againBtn');
+        var hudTag = document.getElementById('hudTag');
+        var hudCount = document.getElementById('hudCount');
+        var progressBar = document.getElementById('progressBar');
+        var result = document.getElementById('result');
+        var hint = document.getElementById('stageHint');
+        var liveStatus = document.getElementById('liveStatus');
+        var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+
+        var duration = 20;
+        var state = 'idle'; // idle | running | reveal
+        var rafId = null;
+        var startTime = 0;
+        var revealTimer = null;
+        var audioCtx = null;
+
+        function beep(freq, dur, delay) {
+          try {
+            if (!audioCtx) {
+              var AC = window.AudioContext || window.webkitAudioContext;
+              if (!AC) return;
+              audioCtx = new AC();
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            var t = audioCtx.currentTime + (delay || 0);
+            var osc = audioCtx.createOscillator();
+            var gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.0001, t);
+            gain.gain.exponentialRampToValueAtTime(0.06, t + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(t); osc.stop(t + dur + 0.05);
+          } catch (e) { /* sound is a garnish, never a blocker */ }
+        }
+
+        function setChipsEnabled(on) {
+          chips.forEach(function (c) { c.disabled = !on; c.style.opacity = on ? '' : '.45'; });
+        }
+
+        function setState(next) {
+          state = next;
+          stage.classList.remove('idle', 'running', 'reveal');
+          stage.classList.add(next === 'running' ? 'running' : next === 'reveal' ? 'reveal' : 'idle');
+        }
+
+        function tick(now) {
+          if (state !== 'running') return;
+          var elapsed = (now - startTime) / 1000;
+          var remaining = Math.max(0, duration - elapsed);
+          hudCount.textContent = Math.ceil(remaining);
+          progressBar.style.width = Math.min(100, (elapsed / duration) * 100) + '%';
+          if (remaining <= 5.05 && remaining > 0.05 && Math.ceil(remaining) !== tick.last) {
+            tick.last = Math.ceil(remaining);
+            beep(660, 0.07, 0);
+          }
+          if (remaining <= 0) { finish(); return; }
+          rafId = requestAnimationFrame(tick);
+        }
+
+        function start() {
+          if (state === 'running') return;
+          clearTimeout(revealTimer);
+          result.classList.remove('show');
+          startOverlay.classList.add('hidden');
+          revealOverlay.classList.add('hidden');
+          /* swap in the boosted artwork for a stronger afterimage */
+          if (art.getAttribute('src') !== 'img-b5851b90.jpg') {
+            art.src = 'img-b5851b90.jpg';
+          }
+          setState('running');
+          hudTag.textContent = 'Stare — eyes on the star';
+          hint.textContent = 'tap the picture to bail';
+          setChipsEnabled(false);
+          tick.last = null;
+          startTime = performance.now();
+          liveStatus.textContent = 'Test running. ' + duration + ' seconds.';
+          beep(440, 0.08, 0);
+          rafId = requestAnimationFrame(tick);
+          stage.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+
+        function finish() {
+          cancelAnimationFrame(rafId);
+          setState('reveal');
+          hudTag.textContent = 'Look away — wall, ceiling, anywhere blank';
+          hudCount.textContent = '';
+          progressBar.style.width = '100%';
+          revealOverlay.classList.remove('hidden');
+          hint.textContent = 'the ghost fades in about 10 seconds';
+          liveStatus.textContent = 'Now look at a white wall or the blank screen. The faces should appear.';
+          beep(880, 0.16, 0); beep(1174, 0.22, 0.14);
+          revealTimer = setTimeout(function () {
+            revealOverlay.classList.add('hidden');
+            hudTag.textContent = 'Again?';
+            result.classList.add('show');
+            result.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          }, 6000);
+        }
+
+        function reset(msg) {
+          cancelAnimationFrame(rafId);
+          clearTimeout(revealTimer);
+          setState('idle');
+          art.src = 'img-5af56409.jpg';
+          hudTag.textContent = 'Ready';
+          hudCount.textContent = '';
+          progressBar.style.width = '0%';
+          revealOverlay.classList.add('hidden');
+          startOverlay.classList.remove('hidden');
+          hint.textContent = msg || 'longer stare = stronger ghost';
+          setChipsEnabled(true);
+        }
+
+        startBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          start();
+        });
+        againBtn.addEventListener('click', function () {
+          result.classList.remove('show');
+          start();
+        });
+        stage.addEventListener('click', function () {
+          if (state === 'running') { reset('bailed. eyes on the star the whole time — go again.'); }
+        });
+        chips.forEach(function (chip) {
+          chip.addEventListener('click', function () {
+            chips.forEach(function (c) { c.setAttribute('aria-pressed', 'false'); });
+            chip.setAttribute('aria-pressed', 'true');
+            duration = parseInt(chip.getAttribute('data-dur'), 10) || 20;
+          });
+        });
+        document.addEventListener('visibilitychange', function () {
+          if (document.hidden && state === 'running') {
+            reset('test paused — it only works if your eyes stay put.');
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
